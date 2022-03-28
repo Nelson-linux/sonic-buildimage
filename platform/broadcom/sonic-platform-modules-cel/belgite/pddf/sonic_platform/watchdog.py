@@ -52,13 +52,12 @@ WD_MAIN_IDENTITY = "cpld_wdt"
 WDT_SYSFS_PATH = "/sys/class/watchdog/"
 
 DEFAULT_TIMEOUT=180
-watchdog = 0
 
 class CpldWatchdog(WatchdogBase):
 
     watchdog = None
     def __init__(self):
-        global watchdog
+        watchdog = 0
         self.status_path = "/sys/devices/platform/cpld_wdt/status" 
         self.state_path = "/sys/devices/platform/cpld_wdt/state" 
         self.timeout_path = "/sys/devices/platform/cpld_wdt/timeout" 

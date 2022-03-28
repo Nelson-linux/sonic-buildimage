@@ -1,0 +1,117 @@
+diff --git a/platform/broadcom/sonic-platform-modules-cel/belgite/modules/pddf_custom_wdt.c b/platform/broadcom/sonic-platform-modules-cel/belgite/modules/pddf_custom_wdt.c
+index 57dc028f9..190fa8547 100644
+--- a/platform/broadcom/sonic-platform-modules-cel/belgite/modules/pddf_custom_wdt.c
++++ b/platform/broadcom/sonic-platform-modules-cel/belgite/modules/pddf_custom_wdt.c
+@@ -114,7 +114,7 @@ static unsigned int watchdog_get_timeleft(struct cpld_wdt_private *wdt)
+ 	time = time << 8 | inb(WDT_TIMER_L_BIT_REG);
+ 	time = time/1000;
+ 	mutex_unlock(&wdt->wdat.lock);
+-
++	//pr_crit("Watchdog Get Timeleft:%u\n", time);
+ 	return time;
+ }
+ static int watchdog_get_timeout(struct cpld_wdt_private *wdt)
+@@ -153,7 +153,7 @@ static int watchdog_set_timeout(struct cpld_wdt_private *wdt, unsigned int timeo
+ 		wdt->wdat.timer_val = timeout;
+ 	}
+ 	/* Set timer value */
+-	pr_crit("Watchdog Timeout:0x%06x\n", wdt->wdat.timer_val); 
++	//pr_crit("Watchdog Timeout:0x%06x\n", wdt->wdat.timer_val); 
+ 
+ 	outb((wdt->wdat.timer_val >> 16) & 0xff, WDT_SET_TIMER_H_BIT_REG);
+ 	outb((wdt->wdat.timer_val >> 8) & 0xff, WDT_SET_TIMER_M_BIT_REG);
+@@ -175,7 +175,7 @@ static int watchdog_ping(struct cpld_wdt_private *wdt)
+ 	outb(WDT_START_FEED, WDT_FEED_REG);
+ 	/* stop feed watchdog */
+ 	outb(WDT_STOP_FEED, WDT_FEED_REG);
+-	
++	//pr_crit("Watchdog Ping\n");	
+ 	mutex_unlock(&wdt->wdat.lock);
+ 
+ 	return 0;
+@@ -198,7 +198,7 @@ static void watchdog_keepalive(struct cpld_wdt_private *wdt)
+         val &= 0x1;
+         /* start feed watchdog */
+         outb(val, WDT_FEED_REG);
+-	
++        //pr_crit("Watchdog Keepalive\n");	
+ 	mutex_unlock(&wdt->wdat.lock);
+ 	return;
+ }
+@@ -214,7 +214,7 @@ static int watchdog_start(struct cpld_wdt_private *wdt)
+ 	outb(WDT_ENABLE, WDT_ENABLE_REG);
+ 	outb(WDT_RESTART, WDT_PUNCH_REG);
+ 	mutex_unlock(&wdt->wdat.lock);
+-
++        //pr_crit("Watchdog Start:Enable and PUNCH\n");
+ 	return 0;
+ }
+ 
+@@ -226,6 +226,7 @@ static int watchdog_stop(struct cpld_wdt_private *wdt)
+ 	mutex_lock(&wdt->wdat.lock);
+ 	outb(WDT_DISABLE, WDT_ENABLE_REG);
+ 	mutex_unlock(&wdt->wdat.lock);
++        //pr_crit("Watchdog Stop\n");
+ 	return 0;
+ }
+ 
+@@ -398,7 +399,7 @@ static int watchdog_release(struct inode *inode, struct file *file)
+ 	clear_bit(0, &p->wdat.opened);
+ 
+ 	if (!p->wdat.expect_close) {
+-		watchdog_keepalive(p);
++		//watchdog_keepalive(p);
+ 		//pr_crit("Unexpected close, Not stopping watchdog!\n");
+ 	} else if (!nowayout) {
+ 		//pr_crit("Cpld Watchdog Stopped!\n");
+@@ -521,7 +522,7 @@ static long watchdog_ioctl(struct file *file, unsigned int cmd,
+ 		new_timeout = new_timeout*1000;	
+ 		if (watchdog_set_timeout(p, new_timeout))
+ 			return -EINVAL;
+-		watchdog_keepalive(p);
++		//watchdog_keepalive(p);
+ 		/* Fall */
+ 		return 0;
+ 	case WDIOC_GETTIMEOUT:
+diff --git a/platform/broadcom/sonic-platform-modules-cel/belgite/pddf/sonic_platform/chassis.py b/platform/broadcom/sonic-platform-modules-cel/belgite/pddf/sonic_platform/chassis.py
+index 74023a88c..8333d2680 100644
+--- a/platform/broadcom/sonic-platform-modules-cel/belgite/pddf/sonic_platform/chassis.py
++++ b/platform/broadcom/sonic-platform-modules-cel/belgite/pddf/sonic_platform/chassis.py
+@@ -7,7 +7,6 @@
+ try:
+     from sonic_platform_pddf_base.pddf_chassis import PddfChassis
+     from sonic_platform.fan_drawer import FanDrawer
+-    from sonic_platform.watchdog import Watchdog
+ except ImportError as e:
+     raise ImportError(str(e) + "- required module not found")
+ 
+@@ -64,7 +63,9 @@ class Chassis(PddfChassis):
+             An object derived from WatchdogBase representing the hardware
+             watchdog device
+         """
+-        self._watchdog = Watchdog()
++        if self._watchdog is None:
++            from sonic_platform.watchdog import Watchdog
++            self._watchdog = Watchdog()
+ 
+         return self._watchdog
+ 		
+diff --git a/platform/broadcom/sonic-platform-modules-cel/belgite/pddf/sonic_platform/watchdog.py b/platform/broadcom/sonic-platform-modules-cel/belgite/pddf/sonic_platform/watchdog.py
+index 7aa635cbe..09bbfc4eb 100644
+--- a/platform/broadcom/sonic-platform-modules-cel/belgite/pddf/sonic_platform/watchdog.py
++++ b/platform/broadcom/sonic-platform-modules-cel/belgite/pddf/sonic_platform/watchdog.py
+@@ -52,13 +52,12 @@ WD_MAIN_IDENTITY = "cpld_wdt"
+ WDT_SYSFS_PATH = "/sys/class/watchdog/"
+ 
+ DEFAULT_TIMEOUT=180
+-watchdog = 0
+ 
+ class CpldWatchdog(WatchdogBase):
+ 
+     watchdog = None
+     def __init__(self):
+-        global watchdog
++        watchdog = 0
+         self.status_path = "/sys/devices/platform/cpld_wdt/status" 
+         self.state_path = "/sys/devices/platform/cpld_wdt/state" 
+         self.timeout_path = "/sys/devices/platform/cpld_wdt/timeout" 

@@ -114,7 +114,7 @@ static unsigned int watchdog_get_timeleft(struct cpld_wdt_private *wdt)
 	time = time << 8 | inb(WDT_TIMER_L_BIT_REG);
 	time = time/1000;
 	mutex_unlock(&wdt->wdat.lock);
-
+	//pr_crit("Watchdog Get Timeleft:%u\n", time);
 	return time;
 }
 static int watchdog_get_timeout(struct cpld_wdt_private *wdt)
@@ -153,7 +153,7 @@ static int watchdog_set_timeout(struct cpld_wdt_private *wdt, unsigned int timeo
 		wdt->wdat.timer_val = timeout;
 	}
 	/* Set timer value */
-	pr_crit("Watchdog Timeout:0x%06x\n", wdt->wdat.timer_val); 
+	//pr_crit("Watchdog Timeout:0x%06x\n", wdt->wdat.timer_val); 
 
 	outb((wdt->wdat.timer_val >> 16) & 0xff, WDT_SET_TIMER_H_BIT_REG);
 	outb((wdt->wdat.timer_val >> 8) & 0xff, WDT_SET_TIMER_M_BIT_REG);
@@ -175,7 +175,7 @@ static int watchdog_ping(struct cpld_wdt_private *wdt)
 	outb(WDT_START_FEED, WDT_FEED_REG);
 	/* stop feed watchdog */
 	outb(WDT_STOP_FEED, WDT_FEED_REG);
-	
+	//pr_crit("Watchdog Ping\n");	
 	mutex_unlock(&wdt->wdat.lock);
 
 	return 0;
@@ -198,7 +198,7 @@ static void watchdog_keepalive(struct cpld_wdt_private *wdt)
         val &= 0x1;
         /* start feed watchdog */
         outb(val, WDT_FEED_REG);
-	
+        //pr_crit("Watchdog Keepalive\n");	
 	mutex_unlock(&wdt->wdat.lock);
 	return;
 }
@@ -214,7 +214,7 @@ static int watchdog_start(struct cpld_wdt_private *wdt)
 	outb(WDT_ENABLE, WDT_ENABLE_REG);
 	outb(WDT_RESTART, WDT_PUNCH_REG);
 	mutex_unlock(&wdt->wdat.lock);
-
+        //pr_crit("Watchdog Start:Enable and PUNCH\n");
 	return 0;
 }
 
@@ -226,6 +226,7 @@ static int watchdog_stop(struct cpld_wdt_private *wdt)
 	mutex_lock(&wdt->wdat.lock);
 	outb(WDT_DISABLE, WDT_ENABLE_REG);
 	mutex_unlock(&wdt->wdat.lock);
+        //pr_crit("Watchdog Stop\n");
 	return 0;
 }
 
@@ -398,7 +399,7 @@ static int watchdog_release(struct inode *inode, struct file *file)
 	clear_bit(0, &p->wdat.opened);
 
 	if (!p->wdat.expect_close) {
-		watchdog_keepalive(p);
+		//watchdog_keepalive(p);
 		//pr_crit("Unexpected close, Not stopping watchdog!\n");
 	} else if (!nowayout) {
 		//pr_crit("Cpld Watchdog Stopped!\n");
@@ -521,7 +522,7 @@ static long watchdog_ioctl(struct file *file, unsigned int cmd,
 		new_timeout = new_timeout*1000;	
 		if (watchdog_set_timeout(p, new_timeout))
 			return -EINVAL;
-		watchdog_keepalive(p);
+		//watchdog_keepalive(p);
 		/* Fall */
 		return 0;
 	case WDIOC_GETTIMEOUT:
