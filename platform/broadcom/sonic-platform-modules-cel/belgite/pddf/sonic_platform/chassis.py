@@ -7,7 +7,6 @@
 try:
     from sonic_platform_pddf_base.pddf_chassis import PddfChassis
     from sonic_platform.fan_drawer import FanDrawer
-    from sonic_platform.watchdog import Watchdog
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
 
@@ -64,7 +63,9 @@ class Chassis(PddfChassis):
             An object derived from WatchdogBase representing the hardware
             watchdog device
         """
-        self._watchdog = Watchdog()
+        if self._watchdog is None:
+            from sonic_platform.watchdog import Watchdog
+            self._watchdog = Watchdog()
 
         return self._watchdog
 		
