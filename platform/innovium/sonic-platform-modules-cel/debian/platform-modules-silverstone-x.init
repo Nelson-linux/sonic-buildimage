@@ -33,7 +33,8 @@ start)
         modprobe lm75
         modprobe platform_fan.ko
         modprobe platform_psu.ko
-        modprobe ucd9000.ko
+        modprobe ucd90120.ko
+        modprobe ucd90160.ko
         modprobe mp2975.ko
         modprobe mcp3425_smbus.ko
         modprobe tps536c7.ko
@@ -133,7 +134,8 @@ stop)
         rmmod i2c-dev
         rmmod platform_fan
         rmmod platform_psu
-        rmmod ucd9000
+        rmmod ucd90120
+        rmmod ucd90160
         rmmod mp2975
         rmmod mcp3425_smbus
         rmmod tps536c7

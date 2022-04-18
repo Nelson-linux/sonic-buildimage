@@ -38,6 +38,7 @@
 #define FAN_LED_RED	  2 
 #define FAN_LED_GREEN 1 
 
+#define FANCPLD_VER_REG 0
 
 //#define FAN_WDT_CTRL      0x30
 
@@ -48,6 +49,7 @@ static ssize_t set_duty_cycle(struct device *dev, struct device_attribute *da,
 
 static ssize_t set_led_ctrl(struct device *dev, struct device_attribute *da,
             const char *buf, size_t count);
+static ssize_t version_show(struct device *dev, struct device_attribute *attr, char *buf);
 
 /* fan related data, the index should match sysfs_fan_attributes
  */
@@ -94,6 +96,13 @@ static const u8 dfps0880_fan_reg[] = {
     0x64,  /* FAN5 Led Control Reg */
     0x74,  /* FAN6 Led Control Reg */
     0x84,  /* FAN7 Led Control Reg */
+	0x20,  /* FAN1F Speed Reg */ 
+    0x30,  /* FAN2F Speed Reg */
+    0x40,  /* FAN3F Speed Reg */ 
+    0x50,  /* FAN4F Speed Reg */
+    0x60,  /* FAN5F Speed Reg */	   
+    0x70,  /* FAN6F Speed Reg */    	
+    0x80,  /* FAN7F Speed Reg */
 };
 
 /* Each client has this additional data */
@@ -204,6 +213,8 @@ enum sysfs_fan_attributes {
 
 #define DECLARE_FAN_LED_ATTR(index) &sensor_dev_attr_fan##index##_led.dev_attr.attr
 
+DEVICE_ATTR_RO(version);
+
 /* 7 fan fault attributes in this platform */
 DECLARE_FAN_FAULT_SENSOR_DEV_ATTR(1);
 DECLARE_FAN_FAULT_SENSOR_DEV_ATTR(2);
@@ -297,11 +308,26 @@ static struct attribute *dfps0880_fan_attributes[] = {
     DECLARE_FAN_FAULT_ATTR(5),
     DECLARE_FAN_FAULT_ATTR(6),
     DECLARE_FAN_FAULT_ATTR(7),
+	&dev_attr_version.attr,
     NULL
 };
 
 #define FAN_DUTY_CYCLE_REG_MASK         0xFF
 #define FAN_MAX_DUTY_CYCLE              100
+
+/* CPLD version attributes */
+static ssize_t version_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+    int len = 0;
+    unsigned char value = 0;
+    struct i2c_client *client = to_i2c_client(dev);
+	 
+    value = i2c_smbus_read_byte_data(client, FANCPLD_VER_REG);
+    if(value < 0)
+        return value;
+    len = sprintf(buf, "%d.%d\n", value >> 4, value & 0x0F);
+    return len;
+}
 
 static int fan_read_value(struct i2c_client *client, u8 reg)
 {
@@ -340,7 +366,7 @@ static u8 duty_cycle_to_reg_val(u8 duty_cycle)
 
     return duty_cycle;
 }
-/*FAN speed: reg_val*60*/
+/*FAN speed: reg_val*150*/
 static u32 reg_val_to_speed_rpm(u8 reg_val)
 {
     if (reg_val == 0 || reg_val == 255) {

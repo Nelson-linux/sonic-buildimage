@@ -9,7 +9,6 @@
 #############################################################################
 
 import os
-import re
 import os.path
 
 try:
@@ -18,75 +17,131 @@ try:
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
 
-THERMAL_INFO = {
-    0: {
-        "F2B_max": 50,
-        "B2F_max": 55,
-        "postion": "asic",
-        "name": "Front-panel temp sensor 1",
-        "i2c_path": "i2c-5/5-0048/hwmon/hwmon1",    # u4 system-inlet
-    },
-    1: {
-        "F2B_max": 50,
-        "B2F_max": 55,
-        "postion": "asic",
-        "name": "Front-panel temp sensor 2",
-        "i2c_path": "i2c-6/6-0049/hwmon/hwmon2",    # u2 system-inlet
-    },
-    2: {
-        "F2B_max": 70,
-        "F2B_max_crit": 75,
-        "B2F_max": 60,
-        "B2F_max_crit": 65,
-        "postion": "asic",
-        "name": "ASIC temp sensor",
-        "i2c_path": "i2c-7/7-004a/hwmon/hwmon3",    # u44 bmc56960-on-board
-    },
-    3: {
-        "F2B_max": 70,
-        "F2B_max_crit": 75,
-        "B2F_max": 70,
-        "B2F_max_crit": 75,
-        "postion": "cpu",
-        "name": "Rear-panel temp sensor 1",
-        "i2c_path": "i2c-14/14-0048/hwmon/hwmon4",  # u9200 cpu-on-board
-    },
-    4: {
-        "F2B_max": 70,
-        "B2F_max": 55,
-        "postion": "cpu",
-        "name": "Rear-panel temp sensor 2",
-        "i2c_path": "i2c-15/15-004e/hwmon/hwmon5"   # u9201 system-outlet
-    }
-}
 NULL_VAL = "N/A"
 I2C_ADAPTER_PATH = "/sys/class/i2c-adapter"
+
+THERMAL_INFO = [
+    {'name': 'CPU_TEMP1',    # 0
+     'bus_path': '/sys/devices/platform/coretemp.0/hwmon/'},
+    {'name': 'CPU_TEMP2',    # 1
+     'bus_path': '/sys/devices/platform/coretemp.0/hwmon/'},
+    {'name': 'CPU_TEMP3',    # 2
+     'bus_path': '/sys/devices/platform/coretemp.0/hwmon/'},
+    {'name': 'CPU_TEMP4',    # 3
+     'bus_path': '/sys/devices/platform/coretemp.0/hwmon/'},
+    {'name': 'TEMP_FB_U52',  # 4
+     'bus_path': '/sys/bus/i2c/devices/i2c-58/58-0048/hwmon/'},
+    {'name': 'TEMP_SW_U52', # 5
+     'bus_path': '/sys/bus/i2c/devices/i2c-8/8-0048/hwmon/'},
+    {'name': 'TEMP_SW_U2', # 6
+     'bus_path': '/sys/bus/i2c/devices/i2c-8/8-004a/hwmon/'},
+    {'name': 'TEMP_SW_U16', # 7
+     'bus_path': '/sys/bus/i2c/devices/i2c-8/8-0049/hwmon/'},
+    {'name': 'TEMP_FB_U17', # 8
+     'bus_path': '/sys/bus/i2c/devices/i2c-58/58-0049/hwmon/'},
+    {'name': 'I89_CORE_Temp', # 9
+     'bus_path': '/sys/bus/i2c/devices/i2c-4/4-006c/hwmon/'},
+    {'name': 'I89_AVDD_Temp', # 10
+     'bus_path': '/sys/bus/i2c/devices/i2c-5/5-0070/hwmon/'},
+    {'name': 'QSFP_DD_Temp1', # 11
+     'bus_path': '/sys/bus/i2c/devices/i2c-5/5-007b/hwmon/'},
+    {'name': 'QSFP_DD_Temp2', # 12
+     'bus_path': '/sys/bus/i2c/devices/i2c-5/5-0076/hwmon/'},
+    {'name': 'TEMP_SW_Internal',    # 13
+     'sensor_path': '/sys/bus/i2c/devices/i2c-8/8-0068/iio:device0/in_voltage0_raw'},
+    {'name': 'PSU1_Temp1',  # 14
+     'bus_path': '/sys/bus/i2c/devices/i2c-7/7-0058/hwmon/'},
+    {'name': 'PSU1_Temp2',  # 15
+     'bus_path': '/sys/bus/i2c/devices/i2c-7/7-0058/hwmon/'},
+    {'name': 'PSU1_Temp3',  # 16
+     'bus_path': '/sys/bus/i2c/devices/i2c-7/7-0058/hwmon/'},
+    {'name': 'PSU2_Temp1',  # 17
+     'bus_path': '/sys/bus/i2c/devices/i2c-7/7-0059/hwmon/'},
+    {'name': 'PSU2_Temp2',  # 18
+     'bus_path': '/sys/bus/i2c/devices/i2c-7/7-0059/hwmon/'},
+    {'name': 'PSU2_Temp3',  # 19
+     'bus_path': '/sys/bus/i2c/devices/i2c-7/7-0059/hwmon/'},
+]
+
+thermal_temp_dict = {
+    "CPU_TEMP1": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL, "max": 103, "high_critical_threshold": 105},
+    "CPU_TEMP2": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL, "max": 103, "high_critical_threshold": 105},
+    "CPU_TEMP3": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL, "max": 103, "high_critical_threshold": 105},
+    "CPU_TEMP4": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL, "max": 103, "high_critical_threshold": 105},
+    "TEMP_FB_U52": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+                   "max": NULL_VAL, "high_critical_threshold": NULL_VAL},
+    "TEMP_SW_U52": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+                    "max": {"B2F": NULL_VAL, "F2B": 58}, "high_critical_threshold": {"B2F": NULL_VAL, "F2B": 62}},
+    "TEMP_SW_U2": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+                    "max": NULL_VAL, "high_critical_threshold": NULL_VAL},
+    "TEMP_SW_U16": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+                    "max": NULL_VAL, "high_critical_threshold": NULL_VAL},
+    "TEMP_FB_U17": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+                    "max": {"B2F": 52, "F2B": NULL_VAL}, "high_critical_threshold": {"B2F": 57, "F2B": NULL_VAL}},
+    "I89_CORE_Temp": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+                     "max": NULL_VAL, "high_critical_threshold": 125},
+    "I89_AVDD_Temp": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+                     "max": NULL_VAL, "high_critical_threshold": 125},
+    "QSFP_DD_Temp1": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+                     "max": NULL_VAL, "high_critical_threshold": 125},
+    "QSFP_DD_Temp2": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+                     "max": NULL_VAL, "high_critical_threshold": 125},
+    "TEMP_SW_Internal": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+                     "max": 105, "high_critical_threshold": 110},
+    "PSU1_Temp1": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+                   "max": NULL_VAL, "high_critical_threshold": 60},
+    "PSU1_Temp2": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+                   "max": NULL_VAL, "high_critical_threshold": 113},
+    "PSU1_Temp3": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+                   "max": NULL_VAL, "high_critical_threshold": {"B2F": 75, "F2B": 88}},
+    "PSU2_Temp1": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+                   "max": NULL_VAL, "high_critical_threshold": 60},
+    "PSU2_Temp2": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+                   "max": NULL_VAL, "high_critical_threshold": 113},
+    "PSU2_Temp3": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+                   "max":NULL_VAL, "high_critical_threshold": {"B2F": 75, "F2B": 88}},
+}
 
 
 class Thermal(ThermalBase):
     """Platform-specific Thermal class"""
 
-    SS_CONFIG_PATH = "/usr/share/sonic/device/x86_64-cel_seastone-r0/sensors.conf"
+    SS_CONFIG_PATH = "/usr/share/sonic/device/x86_64-cel_silverstone-x-r0/sonic_platform/sensors.conf"
 
     def __init__(self, thermal_index, airflow):
+
         self.index = thermal_index
         self._api_helper = APIHelper()
-        self._airflow = airflow
+        self._airflow = str(airflow).upper()
         self._thermal_info = THERMAL_INFO[self.index]
-        self._hwmon_path = "{}/{}".format(I2C_ADAPTER_PATH,
-                                         self._thermal_info["i2c_path"])
         self.name = self.get_name()
-        self.postion = self._thermal_info["postion"]
-        self.ss_index = 1
+        self.__get_thermal_bus_info()
 
-    def __get_temp(self, temp_file):
-        temp_file_path = os.path.join(self._hwmon_path, temp_file)
-        raw_temp = self._api_helper.read_txt_file(temp_file_path)
-        temp = float(raw_temp)/1000
-        return float("{:.3f}".format(temp))
+    def __get_thermal_bus_info(self):
+        """
+        Complete other path information according to the corresponding BUS path
+        """
+        folder_path = self._thermal_info.get("bus_path")
+        if folder_path:
+            sub_folder_name = os.popen("ls %s" % folder_path).read().strip()
+            if self._thermal_info.get("bus_path").endswith("/"):
+                sub_folder_path = folder_path + sub_folder_name
+            else:
+                sub_folder_path = folder_path + "/" + sub_folder_name
+            if self.index < 4:
+                self._thermal_info["sensor_path"] = sub_folder_path + "/temp%s_input" % (self.index + 2)
+            elif self.index < 13:  # 5-12
+                self._thermal_info["sensor_path"] = sub_folder_path + "/temp1_input"
+                self._thermal_info["max_temp"] = sub_folder_path + "/temp1_max"
+            elif self.index == 13:  # 13
+                pass
+            elif self.index < 17:  # 14-16
+                self._thermal_info["sensor_path"] = sub_folder_path + "/temp%s_input" % (self.index - 13)
+            else:  # 17-19
+                self._thermal_info["sensor_path"] = sub_folder_path + "/temp%s_input" % (self.index - 16)
 
-    def __set_threshold(self, file_name, temperature):
-        temp_file_path = os.path.join(self._hwmon_path, file_name)
+    def __set_threshold(self, temperature):
+        temp_file_path = self._thermal_info.get("max_temp", "N/A")
         try:
             with open(temp_file_path, 'w') as fd:
                 fd.write(str(temperature))
@@ -101,8 +156,16 @@ class Thermal(ThermalBase):
             A float number of current temperature in Celsius up to nearest thousandth
             of one degree Celsius, e.g. 30.125
         """
-        temp_file = "temp{}_input".format(self.ss_index)
-        return self.__get_temp(temp_file)
+
+        temperature = self._api_helper.read_txt_file(self._thermal_info.get("sensor_path", "N/A"))
+        if temperature:
+            temperature = float(temperature) / 1000
+        else:
+            temperature = 0
+        if self.name == "TEMP_SW_Internal":
+            a, b, c, v = -124.28, -422.03, 384.62, temperature
+            temperature = a * (v ** 2) + (b * v) + c
+        return float("{:.3f}".format(temperature))
 
     def get_high_threshold(self):
         """
@@ -111,8 +174,12 @@ class Thermal(ThermalBase):
             A float number, the high threshold temperature of thermal in Celsius
             up to nearest thousandth of one degree Celsius, e.g. 30.125
         """
-        max_crit_key = '{}_max'.format(self._airflow)
-        return self._thermal_info.get(max_crit_key, None)
+        high_threshold = thermal_temp_dict.get(self.name).get("max")
+        if isinstance(high_threshold, dict):
+            high_threshold = high_threshold.get(self._airflow)
+        if high_threshold != NULL_VAL:
+            high_threshold = float("{:.3f}".format(high_threshold))
+        return high_threshold
 
     def get_low_threshold(self):
         """
@@ -121,7 +188,10 @@ class Thermal(ThermalBase):
             A float number, the low threshold temperature of thermal in Celsius
             up to nearest thousandth of one degree Celsius, e.g. 30.125
         """
-        return 0.0
+        low_threshold = thermal_temp_dict.get(self.name).get("min")
+        if low_threshold != NULL_VAL:
+            low_threshold = float("{:.3f}".format(low_threshold))
+        return low_threshold
 
     def set_high_threshold(self, temperature):
         """
@@ -132,8 +202,8 @@ class Thermal(ThermalBase):
         Returns:
             A boolean, True if threshold is set successfully, False if not
         """
-        temp_file = "temp{}_max".format(self.ss_index)
-        is_set = self.__set_threshold(temp_file, int(temperature*1000))
+        temp_file = "temp1_max"
+        is_set = self.__set_threshold(int(temperature) * 1000)
         file_set = False
         if is_set:
             try:
@@ -155,7 +225,8 @@ class Thermal(ThermalBase):
 
         return is_set & file_set
 
-    def set_low_threshold(self, temperature):
+    @staticmethod
+    def set_low_threshold(temperature):
         """
         Sets the low threshold temperature of thermal
         Args : 
@@ -164,6 +235,7 @@ class Thermal(ThermalBase):
         Returns:
             A boolean, True if threshold is set successfully, False if not
         """
+        # Not Support
         return False
 
     def get_high_critical_threshold(self):
@@ -173,8 +245,12 @@ class Thermal(ThermalBase):
             A float number, the high critical threshold temperature of thermal in Celsius
             up to nearest thousandth of one degree Celsius, e.g. 30.125
         """
-        max_crit_key = '{}_max_crit'.format(self._airflow)
-        return self._thermal_info.get(max_crit_key, None)
+        high_critical_threshold = thermal_temp_dict.get(self.name).get("high_critical_threshold")
+        if isinstance(high_critical_threshold, dict):
+            high_critical_threshold = high_critical_threshold.get(str(self._airflow).upper())
+        if high_critical_threshold != NULL_VAL:
+            high_critical_threshold = float("{:.3f}".format(float(high_critical_threshold)))
+        return high_critical_threshold
 
     def get_low_critical_threshold(self):
         """
@@ -183,7 +259,10 @@ class Thermal(ThermalBase):
             A float number, the low critical threshold temperature of thermal in Celsius
             up to nearest thousandth of one degree Celsius, e.g. 30.125
         """
-        return 0.0
+        low_critical_threshold = thermal_temp_dict.get(self.name).get("low_critical_threshold")
+        if low_critical_threshold != NULL_VAL:
+            low_critical_threshold = float("{:.3f}".format(float(low_critical_threshold)))
+        return low_critical_threshold
 
     def get_name(self):
         """
@@ -191,7 +270,7 @@ class Thermal(ThermalBase):
             Returns:
             string: The name of the thermal device
         """
-        return self._thermal_info["name"]
+        return self._thermal_info.get("name")
 
     def get_presence(self):
         """
@@ -199,9 +278,7 @@ class Thermal(ThermalBase):
         Returns:
             bool: True if PSU is present, False if not
         """
-        temp_file = "temp{}_input".format(self.ss_index)
-        temp_file_path = os.path.join(self._hwmon_path, temp_file)
-        return os.path.isfile(temp_file_path)
+        return os.path.isfile(self._thermal_info.get("sensor_path", NULL_VAL))
 
     def get_model(self):
         """
@@ -209,9 +286,10 @@ class Thermal(ThermalBase):
         Returns:
             string: Model/part number of device
         """
-        return NULL_VAL
+        return self._thermal_info.get("model", NULL_VAL)
 
-    def get_serial(self):
+    @staticmethod
+    def get_serial():
         """
         Retrieves the serial number of the device
         Returns:
@@ -227,11 +305,4 @@ class Thermal(ThermalBase):
         """
         if not self.get_presence():
             return False
-
-        fault_file = "temp{}_fault".format(self.ss_index)
-        fault_file_path = os.path.join(self._hwmon_path, fault_file)
-        if not os.path.isfile(fault_file_path):
-            return True
-
-        raw_txt = self.__read_txt_file(fault_file_path)
-        return int(raw_txt) == 0
+        return True

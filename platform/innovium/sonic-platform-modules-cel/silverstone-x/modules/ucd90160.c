@@ -21,18 +21,18 @@
 enum chips { ucd9000, ucd90120, ucd90124, ucd90160, ucd90320, ucd9090,
 	     ucd90910 };
 
-#define UCD9000_MONITOR_CONFIG		0xd5 // 16 bytes long to meet ucd90160 and ucd90120 require for SilverstoneX
+#define UCD9000_MONITOR_CONFIG		0xd5 
 #define UCD9000_NUM_PAGES		0xd6
 #define UCD9000_FAN_CONFIG_INDEX	0xe7
 #define UCD9000_FAN_CONFIG		0xe8
 #define UCD9000_MFR_STATUS		0xf3  // 2 bytes long
 #define UCD9000_GPIO_SELECT		0xfa
 #define UCD9000_GPIO_CONFIG		0xfb
-#define UCD9000_DEVICE_ID		0xfd  //32 bytes long
+#define UCD9000_DEVICE_ID		0xfd  //28 bytes long
 
 #define UCD9000_MFR_STATUS_LEN	        2
-#define UCD9000_DEVICE_ID_LEN	        30  // should be 32 but SilverstoneX i2c master read 32 bytes failed. 
-#define UCD9000_MONITOR_CONFIG_LEN		17
+#define UCD9000_DEVICE_ID_LEN	        28
+#define UCD9000_MONITOR_CONFIG_LEN		17 // 17 bytes(length + 16 configurations) long to meet ucd90160
 #define UCD9000_FAN_CONFIG_LEN		    23   
 /* GPIO CONFIG bits */
 #define UCD9000_GPIO_CONFIG_ENABLE	BIT(0)
@@ -134,13 +134,13 @@ static int ucd9000_read_byte_data(struct i2c_client *client, int page, int reg)
 }
 
 static const struct i2c_device_id ucd9000_id[] = {
-	{"ucd9000", ucd9000},
-	{"ucd90120", ucd90120},
-	{"ucd90124", ucd90124},
+	// {"ucd9000", ucd9000},
+	// {"ucd90120", ucd90120},
+	// {"ucd90124", ucd90124},
 	{"ucd90160", ucd90160},
-	{"ucd90320", ucd90320},
-	{"ucd9090", ucd9090},
-	{"ucd90910", ucd90910},
+	// {"ucd90320", ucd90320},
+	// {"ucd9090", ucd9090},
+	// {"ucd90910", ucd90910},
 	{}
 };
 MODULE_DEVICE_TABLE(i2c, ucd9000_id);
@@ -555,7 +555,7 @@ static int ucd9000_probe(struct i2c_client *client,
 	}
 
 	/* The internal temperature sensor is always active */
-	info->func[0] = PMBUS_HAVE_TEMP;
+	// info->func[0] = PMBUS_HAVE_TEMP;
 
 	/* Everything else is configurable */
 	ret = i2c_smbus_read_i2c_block_data(client, UCD9000_MONITOR_CONFIG, UCD9000_MONITOR_CONFIG_LEN,
@@ -566,12 +566,12 @@ static int ucd9000_probe(struct i2c_client *client,
 		return -ENODEV;
 	}
 	for (i = 0; i < ret; i++) {
-		int page = UCD9000_MON_PAGE(block_buffer[i]);
+		int page = UCD9000_MON_PAGE(block_buffer[i+1]); /* [0] is buffer length */
 		//printk("page: %d\n", page);
 		if (page >= info->pages)
 			continue;
 
-		switch (UCD9000_MON_TYPE(block_buffer[i])) {
+		switch (UCD9000_MON_TYPE(block_buffer[i+1])) {
 		case UCD9000_MON_VOLTAGE:
 		case UCD9000_MON_VOLTAGE_HW:
 			info->func[page] |= PMBUS_HAVE_VOUT
@@ -625,7 +625,7 @@ static int ucd9000_probe(struct i2c_client *client,
 /* This is the driver that will be inserted */
 static struct i2c_driver ucd9000_driver = {
 	.driver = {
-		.name = "ucd9000",
+		.name = "cls_ucd90160",
 		.of_match_table = of_match_ptr(ucd9000_of_match),
 	},
 	.probe = ucd9000_probe,

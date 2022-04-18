@@ -6,9 +6,7 @@
 # Watchdog contains an implementation of SONiC Platform Base API
 #
 #############################################################################
-import ctypes
 import os
-import subprocess
 import time
 
 try:
@@ -45,8 +43,8 @@ class Watchdog(WatchdogBase):
         self.getreg_path = os.path.join(PLATFORM_CPLD_PATH, GETREG_FILE)
 
         # Set default value
-        #self._disable()
-        #self.armed = False
+        # self._disable()
+        # self.armed = False
         value = self._api_helper.get_cpld_reg_value(
             self.getreg_path, WDT_ENABLE_REG)
         hex_time = '{}'.format(value)
@@ -148,7 +146,7 @@ class Watchdog(WatchdogBase):
         """
 
         ret = WDT_COMMON_ERROR
-        if seconds < 0:
+        if seconds < 0 or seconds > int(0xffffff/1000):
             return ret
 
         try:
@@ -164,7 +162,7 @@ class Watchdog(WatchdogBase):
 
             ret = self.timeout
             self.arm_timestamp = time.time()
-        except IOError as e:
+        except IOError:
             pass
 
         return ret

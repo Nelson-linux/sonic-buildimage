@@ -8,5 +8,8 @@ for i in $(seq 1 5); do
 done
 systemctl enable platform-modules-silverstone-x.service
 systemctl start platform-modules-silverstone-x.service
+systemctl enable fancontrol.service
+systemctl start fancontrol.service
 
 /usr/local/bin/platform_api_mgnt.sh install
+/etc/init.d/fancontrol.sh install

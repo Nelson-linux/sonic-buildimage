@@ -97,7 +97,6 @@ class ThermalInfo(ThermalPolicyInfoBase):
         self._thermal_overload_position = 'cpu'
 
         # Calculate average temp within the device
-        temp = 0
         num_of_thermals = chassis.get_num_thermals()
         for index in range(num_of_thermals):
             thermal = chassis.get_thermal(index)
