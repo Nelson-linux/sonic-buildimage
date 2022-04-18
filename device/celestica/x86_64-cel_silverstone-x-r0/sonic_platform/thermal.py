@@ -67,7 +67,7 @@ thermal_temp_dict = {
     "PSU2_Temp2": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
                    "max": NULL_VAL, "high_critical_threshold": 113},
     "PSU2_Temp3": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
-                   "max":NULL_VAL, "high_critical_threshold": NULL_VAL},
+                   "max": NULL_VAL, "high_critical_threshold": {"B2F": 75, "F2B": 88}},
     "TEMP_SW_U52": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
                     "max": {"B2F": NULL_VAL, "F2B": 58}, "high_critical_threshold": {"B2F": NULL_VAL, "F2B": 62}},
     "TEMP_SW_U16": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,

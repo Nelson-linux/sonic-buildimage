@@ -7,15 +7,6 @@
 # provides the fan status which are available in the platform
 #
 #############################################################################
-
-import json
-import math
-import os.path
-import re
-import sys
-import time
-import subprocess
-
 try:
     from sonic_platform_base.fan_base import FanBase
     from helper import APIHelper
@@ -36,13 +27,13 @@ IPMI_FAN_TARGET_SPEED_CMD = "0x64 0x02 0x01 {}"  # IPMI_OEM_NETFN + 0x64 + fanbo
 FAN_TARGET_SPEED_REG = ["0x22", "0x32", "0x42", "0x52", "0x62", "0x72",
                         "0x82"]  # FAN1-FAN2 FAN CPLD TARGET SPEED REGISTER
 
-IPMI_SET_FAN_LED_CMD = "0x39 0x02 {} {}"  # IPMI_OEM_NETFN + 0x39 + fan led id: 4-0x0a + fan color: 0-2
-IPMI_GET_FAN_LED_CMD = "0x39 0x01 {}"  # IPMI_OEM_NETFN + 0x39 + fan led id: 4-0x0a
+IPMI_SET_FAN_LED_CMD = "0x39 0x02 {} {}"  # IPMI_OEM_NETFN + 0x39 0x02 + fan led id: 4-0x0a + fan color: 0-2
+IPMI_GET_FAN_LED_CMD = "0x39 0x01 {}"  # IPMI_OEM_NETFN + 0x39 0x01 + fan led id: 4-0x0a
 
 IPMI_GET_PSU1_FAN_SPEED_CMD = "0x3e 0x06 0xb0 2 0x90"
 IPMI_GET_PSU2_FAN_SPEED_CMD = "0x3e 0x06 0xb2 2 0x90"
 
-IPMI_SET_PWM = "0x02 {} {}"
+IPMI_SET_PWM = "0x26 0x02 {} {}"
 IPMI_FRU_PRINT_ID = "ipmitool fru print {}"
 IPMI_SENSOR_LIST_CMD = "ipmitool sensor"
 IPMI_FRU_MODEL_KEY = "Board Part Number"
@@ -52,7 +43,8 @@ MAX_OUTLET = 30200
 MAX_INLET = 32000
 SPEED_TOLERANCE = 10
 
-IPMI_PSU_TARGET_SPEED_CMD = "0x3E {} {} 1 0x3B"  # IPMT_OEM_NETFN + 0x3E + {bus} + {8 bit address} + {read count} + 0x3B:PSU FAN SPEED REG
+# IPMT_OEM_NETFN + 0x3E + {bus} + {8 bit address} + {read count} + 0x3B:PSU FAN SPEED REG
+IPMI_PSU_TARGET_SPEED_CMD = "0x3E {} {} 1 0x3B"
 PSU_I2C_BUS = "0x06"
 PSU_I2C_ADDR = ["0xB0", "0xB2"]  # PSU1 and PSU2 I2C ADDR
 PSU_FAN = "PSU{}_Fan"
@@ -66,8 +58,6 @@ FAN_LED_GREEN_CMD = "0x01"
 FAN_LED_RED_CMD = "0x02"
 FAN1_LED_CMD = "0x04"
 
-FAN_PWM_REGISTER_START = 0x22
-FAN_PWM_REGISTER_STEP = 0x10
 FAN1_FRU_ID = 6  # silverstoneX has no FAN FRU
 
 
@@ -152,7 +142,7 @@ class Fan(FanBase):
                 IPMI_OEM_NETFN, get_target_speed_cmd)
             target = int(round(float(int(get_target_speed_res, 16)) * 100 / 255))
         else:
-            # PSU fan is not used for FCS by BMC, so 0x3B register is not used to set PSU fan speed
+            # PSU fan speed can be set and read, but it's not used for FCS by BMC in SilverstoneX, so value in PSU 0x3B register is random and it's meaningless to read back
             # get_target_speed_cmd = IPMI_PSU_TARGET_SPEED_CMD.format(PSU_I2C_BUS,
             #                                                         PSU_I2C_ADDR[self.psu_index])  # raw speed: 0-100
             # status, get_target_speed_res = self._api_helper.ipmi_raw(
@@ -175,27 +165,23 @@ class Fan(FanBase):
         Sets the fan speed
         Args:
             speed: An integer, the percentage of full fan speed to set fan to,
-                   in the range 0 (off) to 100 (full speed)
+                   in the range 20 (min speed) to 100 (full speed)
         Returns:
             A boolean, True if speed is set successfully, False if not
         Notes:
             pwm setting mode must set as Manual
-            manual: ipmitool raw 0x3a 0x06 0x01 0x0
-            auto: ipmitool raw 0x3a 0x06 0x01 0x1
+            manual: ipmitool raw 0x3a 0x26 0x01 0x0
+            auto: ipmitool raw 0x3a 0x26 0x01 0x1
         """
-
-        # speed_hex = hex(int(float(speed)/100 * 255))
-        # fan_register_hex = hex(FAN_PWM_REGISTER_START +
-        #                       (self.fan_tray_index*FAN_PWM_REGISTER_STEP))
-
-        # set_speed_cmd = IPMI_SET_PWM.format(fan_register_hex, speed_hex)
-        # status, set_speed_res = self._api_helper.ipmi_raw(
-        #    IPMI_OEM_NETFN, set_speed_cmd)
-
-        # set_speed = False if not status else True
-
-        # return set_speed
-        return False  # not to set fan speed if BMC exists
+        # Force minimun speed as 20% as BMC suggests
+        if float(speed) < 20:
+            speed = 20
+        fan_register_hex = hex(self.fan_tray_index)
+        set_speed_cmd = IPMI_SET_PWM.format(fan_register_hex, speed)
+        status, set_speed_res = self._api_helper.ipmi_raw(
+            IPMI_OEM_NETFN, set_speed_cmd)
+        return False if not status else True
+        # return False  # not to set fan speed if BMC exists
 
     def set_status_led(self, color):
         """
@@ -207,9 +193,9 @@ class Fan(FanBase):
             bool: True if status LED state is set successfully, False if not
 
         Note:
-           LED setting mode must set as Manual
-           manual: ipmitool raw 0x3A 0x09 0x02 0x00
-           auto: ipmitool raw 0x3A 0x09 0x02 0x01
+           LED setting mode must set as Manual operation mode first when BMC exsits
+           manual: ipmitool raw 0x3A 0x42 0x02 0x00
+           auto: ipmitool raw 0x3A 0x42 0x02 0x01
         """
         led_cmd = {
             self.STATUS_LED_COLOR_GREEN: FAN_LED_GREEN_CMD,
@@ -282,14 +268,6 @@ class Fan(FanBase):
             string: Model/part number of device
         """
         model = "Unknown"
-        # ipmi_fru_idx = self.fan_tray_index + FAN1_FRU_ID
-        # status, raw_model = self._api_helper.ipmi_fru_id(
-        #    ipmi_fru_idx, IPMI_FRU_MODEL_KEY)
-
-        # fru_pn_list = raw_model.split()
-        # if len(fru_pn_list) > 4:
-        #    model = fru_pn_list[4]
-
         return model
 
     def get_serial(self):
@@ -316,3 +294,4 @@ class Fan(FanBase):
             A boolean value, True if device is operating properly, False if not
         """
         return self.get_presence() and self.get_speed() > 0
+

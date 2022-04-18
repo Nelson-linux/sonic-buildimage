@@ -7,12 +7,6 @@
 # provides the components firmware management function
 #
 #############################################################################
-
-import os.path
-import shutil
-import subprocess
-import time
-
 try:
     from sonic_platform_base.component_base import ComponentBase
     from helper import APIHelper
@@ -73,16 +67,6 @@ class Component(ComponentBase):
             elif self.name == "Main_BIOS":
                 bios_version = "na"
                 return bios_version
-                
-    def get_register_value(self, register):
-        # Retrieves the cpld register value
-        cmd = "echo {1} > {0}; cat {0}".format(GETREG_PATH, register)
-        p = subprocess.Popen(
-            cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        raw_data, err = p.communicate()
-        if err is not '':
-            return None
-        return raw_data.strip()
 
     def __get_cpld_version(self):
         if self.name == "COME_CPLD":

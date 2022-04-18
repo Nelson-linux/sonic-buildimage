@@ -12,7 +12,16 @@ try:
     import sys
     import time
     from sonic_platform_base.chassis_base import ChassisBase
+    from .thermal_manager import ThermalManager
+    from sonic_platform.sfp import Sfp
+    from sonic_platform.psu import Psu
+    from sonic_platform.fan import Fan
+    from sonic_platform.thermal import Thermal
+    from sonic_platform.eeprom import Tlv
+    from sonic_platform.component import Component
+    from sonic_platform.watchdog import Watchdog
     from helper import APIHelper
+    from sonic_platform_base import device_base
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
 
@@ -20,7 +29,8 @@ NUM_FAN_TRAY = 7
 NUM_FAN = 2
 NUM_PSU = 2
 NUM_THERMAL = 19
-NUM_SFP = 34
+# should be 34 including 32 QSFP-DD and 2 SFP, here change to suit SDK port_config.ini
+NUM_SFP = 32 
 NUM_COMPONENT = 10
 RESET_REGISTER = "0xA106"
 HOST_REBOOT_CAUSE_PATH = "/host/reboot-cause/"
@@ -37,58 +47,50 @@ class Chassis(ChassisBase):
     def __init__(self):
         ChassisBase.__init__(self)
         self._api_helper = APIHelper()
+
         self.port_start = 0
         self.port_end = NUM_SFP - 1
         self.fan_start = 0
         self.fan_end = NUM_FAN_TRAY - 1
         self.sfp_module_initialized = False
         self.fan_module_initialized = False
-        self.__initialize_eeprom()
+        self._eeprom = Tlv()
         self.is_host = self._api_helper.is_host()
-
-        if not self.is_host:
-            self.__initialize_fan()
-            self.__initialize_psu()
-            self.__initialize_thermals()
-        else:
-            self.__initialize_components()
+        
+        #if not self.is_host:
+        self.__initialize_fan()
+        self.__initialize_psu()
+        self.__initialize_thermals()
+        #else:
+        self.__initialize_components()
         self.modprs_register = self.get_transceiver_status()
         self.fan_init_status = self.get_fan_status()
 
     def __initialize_sfp(self):
-        from sonic_platform.sfp import Sfp
         for index in range(0, NUM_SFP):
             sfp = Sfp(index)
             self._sfp_list.append(sfp)
         self.sfp_module_initialized = True
 
     def __initialize_psu(self):
-        from sonic_platform.psu import Psu
         for index in range(0, NUM_PSU):
             psu = Psu(index)
             self._psu_list.append(psu)
 
     def __initialize_fan(self):
-        from sonic_platform.fan import Fan
         for fant_index in range(0, NUM_FAN_TRAY):
             for fan_index in range(0, NUM_FAN):
                 fan = Fan(fant_index, fan_index)
                 self._fan_list.append(fan)
         self.fan_module_initialized = True
-
+    
     def __initialize_thermals(self):
-        from sonic_platform.thermal import Thermal
         airflow = self.__get_air_flow()
         for index in range(0, NUM_THERMAL):
             thermal = Thermal(index, airflow)
             self._thermal_list.append(thermal)
 
-    def __initialize_eeprom(self):
-        from sonic_platform.eeprom import Tlv
-        self._eeprom = Tlv()
-
     def __initialize_components(self):
-        from sonic_platform.component import Component
         for index in range(0, NUM_COMPONENT):
             component = Component(index)
             self._component_list.append(component)
@@ -172,7 +174,7 @@ class Chassis(ChassisBase):
         return prev_reboot_cause
 
     ##############################################################
-    ######################## SFP methods #########################
+    ####################### SFP methods ##########################
     ##############################################################
 
     def get_num_sfps(self):
@@ -210,16 +212,14 @@ class Chassis(ChassisBase):
             An object dervied from SfpBase representing the specified sfp
         """
         sfp = None
-
         if not self.sfp_module_initialized:
             self.__initialize_sfp()
 
         try:
-            # The index will start from 0
             sfp = self._sfp_list[index]
         except IndexError:
             sys.stderr.write("SFP index {} out of range (0-{})\n".format(
-                index, len(self._sfp_list)))
+                             index, len(self._sfp_list)))
         return sfp
 
     ##############################################################
@@ -234,14 +234,13 @@ class Chassis(ChassisBase):
             watchdog device
         """
         if self._watchdog is None:
-            from sonic_platform.watchdog import Watchdog
             self._watchdog = Watchdog()
 
         return self._watchdog
 
-    ##############################################################
-    ###################### Device methods ########################
-    ##############################################################
+    #############################################################
+    ##################### Device methods ########################
+    #############################################################
 
     def get_name(self):
         """
@@ -251,7 +250,8 @@ class Chassis(ChassisBase):
         """
         return self._api_helper.hwsku
 
-    def get_presence(self):
+    @staticmethod
+    def get_presence():
         """
         Retrieves the presence of the Chassis
         Returns:
@@ -276,7 +276,8 @@ class Chassis(ChassisBase):
         """
         return self.get_serial_number()
 
-    def get_status(self):
+    @staticmethod
+    def get_status():
         """
         Retrieves the operational status of the device
         Returns:
@@ -284,8 +285,8 @@ class Chassis(ChassisBase):
         """
         return True
 
-    def get_thermal_manager(self):
-        from .thermal_manager import ThermalManager
+    @staticmethod
+    def get_thermal_manager():
         return ThermalManager
 
     def get_fan_status(self):
@@ -351,6 +352,7 @@ class Chassis(ChassisBase):
         fan_dict = {}
         change_dict = {'fan': {}, 'sfp': {}}
         port = self.port_start
+        fan = self.fan_start
         forever = False
         change_event = False
 
@@ -364,21 +366,22 @@ class Chassis(ChassisBase):
 
         end_time = start_time + timeout
         if start_time > end_time:
-            print('get_transceiver_change_event:' \
-                  'time wrap / invalid timeout value', timeout)
+            print('get_transceiver_change_event: time wrap, invalid timeout value', timeout)
 
             return False, {}  # Time wrap or possibly incorrect timeout
+
         while timeout >= 0:
             # Check for OIR events and return updated port_dict
             reg_value = self.get_transceiver_status()
             if reg_value != self.modprs_register:
                 changed_ports = self.modprs_register ^ reg_value
-                while port >= self.port_start and port <= self.port_end:
+                while self.port_start <= port <= self.port_end:
 
                     # Mask off the bit corresponding to our port
                     mask = (1 << port)
 
                     if changed_ports & mask:
+                        # ModPrsL is active low
                         if reg_value & mask == 0:
                             port_dict[port] = '0'
                         else:
@@ -393,8 +396,7 @@ class Chassis(ChassisBase):
             value = self.get_fan_status()
             if value != self.fan_init_status:
                 changed_fans = self.fan_init_status ^ value
-                while fan >= self.fan_start and fan <= self.fan_end:
-
+                while self.fan_start <= fan <= self.fan_end:
                     # Mask off the bit corresponding to our port
                     mask = (1 << fan)
 
@@ -428,4 +430,6 @@ class Chassis(ChassisBase):
         print("get_transceiver_change_event: Should not reach here.")
         return False, change_dict
 
-
+    @staticmethod
+    def get_position_in_parent():
+        return -1

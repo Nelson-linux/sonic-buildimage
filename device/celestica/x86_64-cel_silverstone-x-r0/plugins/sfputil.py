@@ -25,6 +25,9 @@ class SfpUtil(SfpUtilBase):
     SFP_PORT_INFO_PATH = '/sys/devices/platform/fpga-xcvr'
     PORT_INFO_PATH = QSFP_PORT_INFO_PATH
 	
+    OSFP_INFO_PAGE = 0
+    PAGE_SELETCT_OFFSET = 127
+
     _port_name = ""
     _port_to_eeprom_mapping = {}
     _port_to_i2cbus_mapping = {}
@@ -84,16 +87,43 @@ class SfpUtil(SfpUtilBase):
             # Read dom eeprom at addr 0x51
             return self._read_eeprom_devid(port_num, self.DOM_EEPROM_ADDR, 256)
 
+    def __write_eeprom_specific_bytes(self, port_num, offset, write_bytes):
+        """
+        Writes bytes to sfp eeprom
+        Args:
+            offset: integer, 0-0xff
+            bytes : list, [0x12, 0x13, ...], bytes to write
+        Returns:
+            A boolean, True if bytes are written successfully, False if not
+        """
+
+        sysfsfile_eeprom = None
+        sysfs_sfp_i2c_client_eeprom_path = self.port_to_eeprom_mapping[port_num]
+        try:
+            with open(sysfs_sfp_i2c_client_eeprom_path, mode="r+b", buffering=0) as sysfsfile_eeprom:
+                sysfsfile_eeprom.seek(offset)
+                for i in range(len(write_bytes)):
+                    sysfsfile_eeprom.write(chr(write_bytes[i]))
+        except Exception as error:
+            # print(str(error))
+            return False
+
     def __init__(self):
         # Override port_to_eeprom_mapping for class initialization
         eeprom_path = '/sys/bus/i2c/devices/i2c-{0}/{0}-0050/eeprom'
 
-        for x in range(self.PORT_START, self.PORT_END+1):
+        for x in range(self.PORT_START, self.PORT_END + 1):
             self.port_to_i2cbus_mapping[x] = (x + self.EEPROM_OFFSET)
             self.port_to_eeprom_mapping[x] = eeprom_path.format(
                 x + self.EEPROM_OFFSET)
-        # Get Transceiver status
+	    # Get Transceiver status
         self.modprs_register = self.get_transceiver_status
+
+        # All SFPs' eeprom switch to page 0
+        for x in range(self.PORT_START, self.PORT_END + 1):
+            if self.get_presence(x):
+                self.__write_eeprom_specific_bytes(x, self.PAGE_SELETCT_OFFSET, [self.OSFP_INFO_PAGE])
+
         SfpUtilBase.__init__(self)
 
     def get_presence(self, port_num):
