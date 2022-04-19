@@ -1,6 +1,8 @@
 depmod -a
 systemctl enable platform-modules-midstone-100x.service
 systemctl start platform-modules-midstone-100x.service
+systemctl enable fancontrol.service
+systemctl start fancontrol.service
 
 /usr/local/bin/platform_api_mgnt.sh install
-/etc/init.d/fancontrol.sh install
+/etc/init.d/fancontrol.sh start
