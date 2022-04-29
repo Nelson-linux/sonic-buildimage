@@ -10,16 +10,14 @@
 
 try:
     import sys
-    import re
-    import os
-    import subprocess
     import time
     import json
     from sonic_platform_base.chassis_base import ChassisBase
-    from helper import APIHelper
+    from .helper import APIHelper
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
 
+NUM_FAN_DRAWER = 1
 NUM_FAN_TRAY = 7
 NUM_FAN = 2
 NUM_PSU = 2
@@ -72,10 +70,11 @@ class Chassis(ChassisBase):
             self._psu_list.append(psu)
 
     def __initialize_fan(self):
-        from sonic_platform.fan import Fan
-        for fant_index in range(0, NUM_FAN_TRAY):
-            for fan_index in range(0, NUM_FAN):
-                fan = Fan(fant_index, fan_index)
+        from sonic_platform.fan_drawer import FanDrawer
+        for index in range(0, NUM_FAN_DRAWER):
+            fandrawer = FanDrawer(index)
+            self._fan_drawer_list.append(fandrawer)
+            for fan in fandrawer.get_all_fans():
                 self._fan_list.append(fan)
 
     def __initialize_thermals(self):

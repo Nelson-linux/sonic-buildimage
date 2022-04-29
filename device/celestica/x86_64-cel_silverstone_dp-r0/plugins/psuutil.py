@@ -1,6 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import os.path
 import subprocess
 import sys
 import re
@@ -9,10 +8,6 @@ try:
     from sonic_psu.psu_base import PsuBase
 except ImportError as e:
     raise ImportError (str(e) + "- required module not found")
-
-
-# TODO: update ipmi command to get PSU statuses.
-# user sdr entity 10 and filter psu1/psu2_status for discrete.
 
 class PsuUtil(PsuBase):
     """Platform-specific PSUutil class"""
@@ -29,16 +24,16 @@ class PsuUtil(PsuBase):
 
         if proc.returncode != 0:
             sys.exit(proc.returncode)
-    
-        return out
-    
+
+        return out.decode()
+
     def find_value(self, in_string):
         result = re.search("^.+ ([0-9a-f]{2}) .+$", in_string)
         if result:
             return result.group(1)
         else:
             return result
-        
+
     def get_num_psus(self):
         """
         Retrieves the number of PSUs available on the device
@@ -59,7 +54,7 @@ class PsuUtil(PsuBase):
         psu_id = self.psu1_id if index == 1 else self.psu2_id
         res_string = self.run_command(self.ipmi_raw + ' ' + psu_id)
         status_byte = self.find_value(res_string)
-        
+
         if status_byte is None:
             return False
 
@@ -83,10 +78,10 @@ class PsuUtil(PsuBase):
         psu_id = self.psu1_id if index == 1 else self.psu2_id
         res_string = self.run_command(self.ipmi_raw + ' ' + psu_id)
         status_byte = self.find_value(res_string)
-        
+
         if status_byte is None:
             return False
-        
+
         presence = ( int(status_byte, 16) >> 0 ) & 1
         if presence:
             return True

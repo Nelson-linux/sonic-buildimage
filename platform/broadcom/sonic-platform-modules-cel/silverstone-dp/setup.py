@@ -6,7 +6,7 @@ HW_SKU = 'x86_64-cel_silverstone_dp-r0'
 setup(
     name='sonic-platform',
     version='1.0',
-    description='SONiC platform API implementation on Celestica Platforms',
+    description='SONiC platform API implementation on Celestica Silverstone-DP',
     license='Apache 2.0',
     author='SONiC Team',
     author_email='linuxnetdev@microsoft.com',
@@ -27,7 +27,7 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
         'Operating System :: POSIX :: Linux',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
         'Topic :: Utilities',
     ],
     keywords='sonic SONiC platform PLATFORM',

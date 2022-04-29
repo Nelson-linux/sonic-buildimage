@@ -8,13 +8,9 @@
 #
 #############################################################################
 
-import json
-import math
-import os.path
-
 try:
     from sonic_platform_base.fan_base import FanBase
-    from helper import APIHelper
+    from .helper import APIHelper
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
 
@@ -127,7 +123,7 @@ class Fan(FanBase):
             0   : when PWM mode is use
             pwm : when pwm mode is not use
         """
-        target = 0
+        target = 'N/A'
         return target
 
     def get_speed_tolerance(self):
@@ -309,4 +305,5 @@ class Fan(FanBase):
         Returns:
             A boolean value, True if device is operating properly, False if not
         """
-        return self.get_presence() and self.get_speed() > 0
+        status = self.get_presence() and (self.get_speed() > 0)
+        return status

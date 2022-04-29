@@ -3,7 +3,7 @@
 import os
 import struct
 import subprocess
-from sonic_daemon_base.daemon_base import DaemonBase
+from sonic_py_common import device_info
 from mmap import *
 
 HOST_CHK_CMD = "docker > /dev/null 2>&1"
@@ -13,7 +13,7 @@ EMPTY_STRING = ""
 class APIHelper():
 
     def __init__(self):
-        (self.platform, self.hwsku) = DaemonBase().get_platform_and_hwsku()
+        (self.platform, self.hwsku) = device_info.get_platform_and_hwsku()
 
     def is_host(self):
         return os.system(HOST_CHK_CMD) == 0
@@ -38,8 +38,8 @@ class APIHelper():
             p = subprocess.Popen(
                 cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             raw_data, err = p.communicate()
-            if err == '':
-                result = raw_data.strip()
+            if p.returncode == 0:
+                result = raw_data.decode().strip()
         except:
             status = False
         return status, result
@@ -68,10 +68,10 @@ class APIHelper():
         except IOError:
             pass
         return None
-        
+
     def write_hex_value(self, file_path,value):
         try:
-            with open(file_path, 'wb') as fd:
+            with open(file_path, 'w') as fd:
                 data = fd.write(hex(value))
                 return data
         except IOError:
@@ -86,8 +86,8 @@ class APIHelper():
             p = subprocess.Popen(
                 cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             raw_data, err = p.communicate()
-            if err == '':
-                result = raw_data.strip()
+            if p.returncode == 0:
+                result = raw_data.decode().strip()
             else:
                 status = False
         except:
@@ -104,7 +104,7 @@ class APIHelper():
             p = subprocess.Popen(
                 cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             raw_data, err = p.communicate()
-            if err == '':
+            if p.returncode == 0:
                 result = raw_data.strip()
             else:
                 status = False
@@ -121,7 +121,7 @@ class APIHelper():
             p = subprocess.Popen(
                 cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             raw_data, err = p.communicate()
-            if err == '':
+            if p.returncode == 0:
                 result = raw_data.strip()
             else:
                 status = False

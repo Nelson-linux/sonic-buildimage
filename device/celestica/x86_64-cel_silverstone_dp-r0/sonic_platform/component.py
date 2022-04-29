@@ -8,12 +8,11 @@
 #
 #############################################################################
 
-import json
 import os.path
 
 try:
     from sonic_platform_base.component_base import ComponentBase
-    from helper import APIHelper
+    from .helper import APIHelper
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
 
@@ -24,8 +23,8 @@ COMPONENT_LIST = [
     ("BASE_CPLD",   "Base board CPLD"),
     ("FPGA",        "Field-programmable gate array")
 ]
-SW_CPLD_VER_PATH = "/sys/module/switch_cpld/version"
-BASE_CPLD_VER_PATH = "/sys/module/baseboard_lpc/version"
+SW_CPLD_VER_CMD = "i2cget -f -y 4 0x30 0x0 b"
+BASE_CPLD_VER_PATH = "/sys/devices/platform/baseboard-lpc/version"
 CPLD_UPGRADE_OPT = 4
 BIOS_VER_PATH = "/sys/class/dmi/id/bios_version"
 BIOS__UPGRADE_OPT = 2
@@ -88,11 +87,21 @@ class Component(ComponentBase):
         Returns:
             string: The firmware versions of the module
         """
+
+        status, out = self._api_helper.run_command(SW_CPLD_VER_CMD)
+        if not status:
+            sw_cpld_ver = "Unknown"
+        else:
+            out_num = int(out,16)
+            mj = out_num >> 4
+            mn = out_num & 0xF
+            sw_cpld_ver = f'{mj:d}.{mn:d}'
+
         fw_version = {
             "BIOS": self._api_helper.read_txt_file(BIOS_VER_PATH),
             "BMC": self.__get_bmc_ver(),
             "FPGA": self.__get_fpga_ver(),
-            "SWITCH_CPLD": self._api_helper.read_txt_file(SW_CPLD_VER_PATH),
+            "SWITCH_CPLD": sw_cpld_ver,
             "BASE_CPLD": self._api_helper.read_txt_file(BASE_CPLD_VER_PATH),
         }.get(self.name, "Unknown")
 

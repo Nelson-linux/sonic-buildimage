@@ -10,7 +10,7 @@
 
 try:
     from sonic_platform_base.platform_base import PlatformBase
-    from sonic_platform.chassis import Chassis
+    from .chassis import Chassis
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
 
