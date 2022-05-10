@@ -40,6 +40,7 @@ start)
     if [[ $devname == 'SMBus'* ]]; then
             echo 24lc64t 0x56 > /sys/bus/i2c/devices/i2c-0/new_device
     fi
+
     devname=`cat /sys/bus/i2c/devices/i2c-10/name`
     if [[ $devname == 'ocores-i2c-cls' ]]; then
         echo switchboard 0x30 > /sys/bus/i2c/devices/i2c-10/new_device
@@ -68,21 +69,38 @@ start)
         echo SFP2 > /sys/bus/i2c/devices/i2c-14/14-0050/port_name
     fi
 
+    # COMe board bus/slave and eeprom
     devname=`cat /sys/bus/i2c/devices/i2c-2/name`
     if [[ $devname == 'ocores-i2c-cls' ]]; then	
         echo platform_fan 0x0D > /sys/bus/i2c/devices/i2c-2/new_device
     fi
+
+    # Switch/sysboard eeprom
+    devname=`cat /sys/bus/i2c/devices/i2c-3/name`
+    if [[ $devname == 'ocores-i2c-cls' ]]; then
+        echo 24lc64t 0x50 > /sys/bus/i2c/devices/i2c-3/new_device
+        echo 24lc64t 0x57 > /sys/bus/i2c/devices/i2c-3/new_device
+    fi
+
     devname=`cat /sys/bus/i2c/devices/i2c-4/name`
     if [[ $devname == 'ocores-i2c-cls' ]]; then	
         echo tps536c7 0x6c > /sys/bus/i2c/devices/i2c-4/new_device
         echo ucd90160 0x34 > /sys/bus/i2c/devices/i2c-4/new_device
         echo ucd90120 0x35 > /sys/bus/i2c/devices/i2c-4/new_device
     fi
-    
+
+    # PSU bus/slave and eeprom
     devname=`cat /sys/bus/i2c/devices/i2c-7/name`
     if [[ $devname == 'ocores-i2c-cls' ]]; then	
         echo platform_psu 0x58 > /sys/bus/i2c/devices/i2c-7/new_device
         echo platform_psu 0x59 > /sys/bus/i2c/devices/i2c-7/new_device
+        echo 24c02 0x50 > /sys/bus/i2c/devices/i2c-7/new_device
+        echo 24c02 0x51 > /sys/bus/i2c/devices/i2c-7/new_device
+    fi
+
+    devname=`cat /sys/bus/i2c/devices/i2c-6/name`
+    if [[ $devname == 'ocores-i2c-cls' ]]; then
+        echo 24lc64t 0x50 > /sys/bus/i2c/devices/i2c-6/new_device
     fi
     
     devname=`cat /sys/bus/i2c/devices/i2c-5/name`
@@ -101,6 +119,17 @@ start)
         echo lm75b 0x4b > /sys/bus/i2c/devices/i2c-8/new_device
         echo lm75b 0x4a > /sys/bus/i2c/devices/i2c-8/new_device
     fi
+
+    #eeprom of 4 fans
+    devname=`cat /sys/bus/i2c/devices/i2c-9/name`
+    if [[ $devname == 'ocores-i2c-cls' ]]; then
+        echo pca9548 0x77 > /sys/bus/i2c/devices/i2c-9/new_device
+        echo 24lc64t 0x50 > /sys/bus/i2c/devices/i2c-9/i2c-80/new_device
+        echo 24lc64t 0x50 > /sys/bus/i2c/devices/i2c-9/i2c-81/new_device
+        echo 24lc64t 0x50 > /sys/bus/i2c/devices/i2c-9/i2c-82/new_device
+        echo 24lc64t 0x50 > /sys/bus/i2c/devices/i2c-9/i2c-83/new_device
+    fi
+
 
     decode-syseeprom --init 2> /dev/null &
 
