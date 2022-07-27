@@ -496,7 +496,7 @@ sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y re
 
 sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y install u-boot-tools mtd-utils device-tree-compiler sbsigntool
 ## Sign kernel
-sudo http_proxy=$http_proxy LANG=C apt-get -y install  sbsigntool
+#sudo http_proxy=$http_proxy LANG=C apt-get -y install  sbsigntool
 for kernel in `sudo find  $FILESYSTEM_ROOT/boot -name vmlinuz*`; do
     sudo mv $kernel ${kernel}.unsigned
     sudo sbsign --key src/sonic-linux-kernel/x509/rsa_private.pem --cert src/sonic-linux-kernel/x509/cert.pem --out $kernel ${kernel}.unsigned
@@ -514,13 +514,13 @@ sudo chroot $FILESYSTEM_ROOT update-initramfs -u
 ## Add kernel GPG  signature
 for kernel in `sudo find  $FILESYSTEM_ROOT/boot -name vmlinuz*`; do
     sudo gpg --import gpg/pub.key
-    sudo gpg --batch --import gpg/private.key
-    sudo gpg --default-key $GPG_KEY_ID --detach-sign --passphrase $GPG_PASSWD --batch --yes $kernel
+    sudo gpg --passphrase $GPG_PASSWD --batch --quiet --yes --import gpg/private.key
+    sudo gpg --passphrase $GPG_PASSWD --batch --quiet --yes --default-key $GPG_KEY_ID --detach-sign $kernel
 done
 
 ## Add initramfs GPG signature
 for initrd in `sudo find  $FILESYSTEM_ROOT/boot -name initrd*`; do
-    sudo gpg --default-key $GPG_KEY_ID --detach-sign --passphrase $GPG_PASSWD --batch --yes $initrd
+    sudo gpg --passphrase $GPG_PASSWD --batch --quiet --yes --default-key $GPG_KEY_ID --detach-sign $initrd
 done
 
 ## Clean up apt

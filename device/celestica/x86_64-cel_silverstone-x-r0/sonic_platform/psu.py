@@ -76,8 +76,9 @@ class Psu(PsuBase):
 
         self.psu1_id = "0x3a"
         self.psu2_id = "0x3b"
-
-
+        fan_index = PSU_NUM_FAN[self.index]
+        fan = Fan(fan_index, 0, is_psu_fan=True, psu_index=self.index)
+        self._fan_list.append(fan)
 
     def get_voltage(self):
         """
