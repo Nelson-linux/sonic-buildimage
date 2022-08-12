@@ -21,10 +21,8 @@ FAN_NAME_LIST = ["FAN-1F", "FAN-1R", "FAN-2F", "FAN-2R",
 Fan_Speed = "/sys/bus/i2c/devices/2-000d/fan{}_{}_speed_rpm"
 Psu_Fan_Speed = "/sys/bus/i2c/devices/7-00{}/hwmon/hwmon{}/fan1_input"
 Fan_Direction = "/sys/bus/i2c/devices/2-000d/fan{}_direction"
-Fan_Target_Speed = "/sys/bus/i2c/devices/2-000d/pwm{}"
-Fan_Set_Speed = "/sys/bus/i2c/devices/2-000d/pwm{}"
-Fan_Set_Led = "/sys/bus/i2c/devices/2-000d/fan{}_led"
-Fan_Get_Led = "/sys/bus/i2c/devices/2-000d/fan{}_led"
+Fan_PWM = "/sys/bus/i2c/devices/2-000d/pwm{}"
+Fan_Led = "/sys/bus/i2c/devices/2-000d/fan{}_led"
 Fan_Presence = "/sys/bus/i2c/devices/2-000d/fan{}_present"
 
 # define fan max(min) speed
@@ -36,7 +34,7 @@ SPEED_TOLERANCE = 10
 
 # Fan led value
 FAN_LED_OFF_VALUE = "3"
-FAN_LED_RED_VALUE = "2"
+FAN_LED_AMBER_VALUE = "2"
 FAN_LED_GREEN_VALUE = "1"
 
 
@@ -85,7 +83,7 @@ class Fan(FanBase):
         max_rpm = MAX_INLET if self.fan_index % 2 == 0 else MAX_OUTLET
         if self.fan_tray_index < 4:
             fan_tray_index_ = self.fan_tray_index + 1
-            fan_r_f = "rear" if self.fan_index % 2 == 0 else "front"
+            fan_r_f = "front" if self.fan_index % 2 == 0 else "rear"
             rpm_speed = self._api_helper.read_txt_file(Fan_Speed.format(fan_tray_index_, fan_r_f))
             if rpm_speed:
                 rpm_speed = int(rpm_speed)
@@ -117,7 +115,7 @@ class Fan(FanBase):
             speed_pc = pwm_target*100/255
         """
         if self.fan_tray_index < 4:
-            pwm = self._api_helper.read_txt_file(Fan_Target_Speed.format(self.fan_tray_index+1))
+            pwm = self._api_helper.read_txt_file(Fan_PWM.format(self.fan_tray_index+1))
             target = math.ceil(float(pwm) * 100 / 255) if pwm else "N/A"
 
         else:
@@ -149,7 +147,7 @@ class Fan(FanBase):
             return False
         if self.fan_tray_index < 4:
             try:
-                with open(Fan_Set_Speed.format(self.fan_tray_index + 1), "w") as f:
+                with open(Fan_PWM.format(self.fan_tray_index + 1), "w") as f:
                     f.write(speed)
                 return True
             except Exception as E:
@@ -168,11 +166,11 @@ class Fan(FanBase):
         if self.fan_tray_index < 4:
             led_value = {
                 self.STATUS_LED_COLOR_GREEN: FAN_LED_GREEN_VALUE,
-                self.STATUS_LED_COLOR_RED: FAN_LED_RED_VALUE,
+                self.STATUS_LED_COLOR_AMBER: FAN_LED_AMBER_VALUE,
                 self.STATUS_LED_COLOR_OFF: FAN_LED_OFF_VALUE
             }.get(color)
             try:
-                with open(Fan_Set_Led.format(self.fan_tray_index+1), "w") as f:
+                with open(Fan_Led.format(self.fan_tray_index+1), "w") as f:
                     f.write(led_value)
             except Exception as E:
                 print("Error: Set fan%s led fail! cause '%s'" % (self.fan_tray_index+1, E))
@@ -188,16 +186,16 @@ class Fan(FanBase):
             A string, one of the predefined STATUS_LED_COLOR_* strings above
         Note:
             STATUS_LED_COLOR_GREEN = "green"
-            STATUS_LED_COLOR_RED = "red"
+            STATUS_LED_COLOR_AMBER = "amber"
             STATUS_LED_COLOR_OFF = "off"
         """
         if self.fan_tray_index < 4:
-            with open(Fan_Get_Led.format(self.fan_tray_index+1), "r") as f:
+            with open(Fan_Led.format(self.fan_tray_index+1), "r") as f:
                 color = f.read().strip()
             status_led = {
                 "off": self.STATUS_LED_COLOR_OFF,
                 "green": self.STATUS_LED_COLOR_GREEN,
-                "red": self.STATUS_LED_COLOR_AMBER,
+                "amber": self.STATUS_LED_COLOR_AMBER,
             }.get(color, self.STATUS_LED_COLOR_OFF)
 
         else:

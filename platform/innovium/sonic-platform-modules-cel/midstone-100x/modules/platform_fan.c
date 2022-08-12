@@ -35,8 +35,8 @@
 #define VAL_TO_RPM_FACTOR 60
 
 #define FAN_LED_OFF	  3
-#define FAN_LED_RED	  2 
-#define FAN_LED_GREEN 1 
+#define FAN_LED_AMBER	  2
+#define FAN_LED_GREEN     1
 //#define FAN_WDT_CTRL      0x30
 
 static struct dfps0880_fan_data *fan_update_device(struct device *dev);                    
@@ -74,6 +74,10 @@ static const u8 dfps0880_fan_reg[] = {
     0x45,  /* FAN2 Led Control Reg */
     0x49,  /* FAN3 Led Control Reg */
     0x4D,  /* FAN4 Led Control Reg */
+    0x43,  /* FAULT -FAN1F Speed Reg */
+    0x42,  /* FAULT -FAN1R Speed Reg */
+    0x47,  /* FAULT -FAN2F Speed Reg */
+    0x46,  /* FAULT -FAN2R Speed Reg */
 };
 
 /* Each client has this additional data */
@@ -280,7 +284,7 @@ static u8 reg_val_to_direction(u8 reg_val)
     u8 mask = (1 << 3);
     return ((reg_val & mask)>>3);
 }
-/*FAN color:bit[1][0] 11-off 10-red 01-green*/
+/*FAN color:bit[1][0] 11-off 10-amber 01-green*/
 static u8 reg_val_to_color(u8 reg_val, char **reg_color)
 {
 	u8 color,mask;
@@ -289,8 +293,8 @@ static u8 reg_val_to_color(u8 reg_val, char **reg_color)
     {
     case FAN_LED_OFF:
 	    return sprintf(*reg_color, "%s\n", "off");	
-	case FAN_LED_RED:
-	    return sprintf(*reg_color, "%s\n", "red"); 
+	case FAN_LED_AMBER:
+	    return sprintf(*reg_color, "%s\n", "amber");
 	case FAN_LED_GREEN:
 	    return sprintf(*reg_color, "%s\n", "green");
 	default:
@@ -351,8 +355,8 @@ static ssize_t set_led_ctrl(struct device *dev, struct device_attribute *da,
     if (!buf)
         return -EINVAL;
 
-    if(sysfs_streq(buf, "red")){
-	    value = FAN_LED_RED;
+    if(sysfs_streq(buf, "amber")){
+	    value = FAN_LED_AMBER;
     }else if(sysfs_streq(buf, "green")){
    	    value = FAN_LED_GREEN; 
     }else if(sysfs_streq(buf, "off")){

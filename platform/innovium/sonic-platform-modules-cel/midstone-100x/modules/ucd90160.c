@@ -21,19 +21,18 @@
 enum chips { ucd9000, ucd90120, ucd90124, ucd90160, ucd90320, ucd9090,
 	     ucd90910 };
 
-#define UCD9000_MONITOR_CONFIG		0xd5
+#define UCD9000_MONITOR_CONFIG		0xd5 
 #define UCD9000_NUM_PAGES		0xd6
 #define UCD9000_FAN_CONFIG_INDEX	0xe7
 #define UCD9000_FAN_CONFIG		0xe8
-#define UCD9000_MFR_STATUS		0xf3
+#define UCD9000_MFR_STATUS		0xf3  // 2 bytes long
 #define UCD9000_GPIO_SELECT		0xfa
 #define UCD9000_GPIO_CONFIG		0xfb
-#define UCD9000_DEVICE_ID		0xfd
+#define UCD9000_DEVICE_ID		0xfd  //28 bytes long
 
 #define UCD9000_MFR_STATUS_LEN	        2
-#define UCD9000_DEVICE_ID_LEN	        30  // should be 32 but SilverstoneX i2c master read 32 bytes failed. 
-#define UCD9000_MONITOR_CONFIG_LEN		17
-
+#define UCD9000_DEVICE_ID_LEN	        28
+#define UCD9000_MONITOR_CONFIG_LEN		17 // 17 bytes(length + 16 configurations) long to meet ucd90160
 #define UCD9000_FAN_CONFIG_LEN		    23   
 /* GPIO CONFIG bits */
 #define UCD9000_GPIO_CONFIG_ENABLE	BIT(0)
@@ -135,13 +134,13 @@ static int ucd9000_read_byte_data(struct i2c_client *client, int page, int reg)
 }
 
 static const struct i2c_device_id ucd9000_id[] = {
-	{"ucd9000", ucd9000},
-	{"ucd90120", ucd90120},
-	{"ucd90124", ucd90124},
+	// {"ucd9000", ucd9000},
+	// {"ucd90120", ucd90120},
+	// {"ucd90124", ucd90124},
 	{"ucd90160", ucd90160},
-	{"ucd90320", ucd90320},
-	{"ucd9090", ucd9090},
-	{"ucd90910", ucd90910},
+	// {"ucd90320", ucd90320},
+	// {"ucd9090", ucd9090},
+	// {"ucd90910", ucd90910},
 	{}
 };
 MODULE_DEVICE_TABLE(i2c, ucd9000_id);
@@ -506,23 +505,26 @@ static int ucd9000_probe(struct i2c_client *client,
 				     I2C_FUNC_SMBUS_BYTE_DATA |
 				     I2C_FUNC_SMBUS_BLOCK_DATA))
 		return -ENODEV;
-
+	
+    // FPGA is not good enough to suit all i2c devices block read, so this causes dmesg print warning messages
 	ret = i2c_smbus_read_i2c_block_data(client, UCD9000_DEVICE_ID, UCD9000_DEVICE_ID_LEN,
 					block_buffer);  
 	if (ret < 0) {
 		dev_err(&client->dev, "Failed to read device ID\n");
 		return ret;
 	}
+	//dev_err(&client->dev, "Device ID %s\n", block_buffer);
 	block_buffer[ret] = '\0';
-	dev_err(&client->dev, "jjj Device ID %s ret:%d\n", block_buffer,ret);
+	dev_err(&client->dev, "Device ID %s\n", block_buffer);
+
 	for (mid = ucd9000_id; mid->name[0]; mid++) {
-		if (!strncasecmp(mid->name, block_buffer, strlen(mid->name)))
+		if (!strncasecmp(mid->name, block_buffer + 1, strlen(mid->name))) // block_buffer[0] is block length
 			break;
 	}
-	//if (!mid->name[0]) {
-	//	dev_err(&client->dev, "Unsupported device\n");
-	//	return -ENODEV;
-	//}
+	if (!mid->name[0]) {
+		dev_err(&client->dev, "Unsupported device\n");
+		return -ENODEV;
+	}
 
 	if (client->dev.of_node)
 		chip = (enum chips)of_device_get_match_data(&client->dev);
@@ -547,30 +549,29 @@ static int ucd9000_probe(struct i2c_client *client,
 		return ret;
 	}
 	info->pages = ret;
-	dev_err(&client->dev, "info->pages:%d\n",info->pages);
 	if (!info->pages) {
 		dev_err(&client->dev, "No pages configured\n");
 		return -ENODEV;
 	}
 
 	/* The internal temperature sensor is always active */
-	info->func[0] = PMBUS_HAVE_TEMP;
+	// info->func[0] = PMBUS_HAVE_TEMP;
 
 	/* Everything else is configurable */
-	 ret = i2c_smbus_read_i2c_block_data(client, UCD9000_MONITOR_CONFIG, UCD9000_MONITOR_CONFIG_LEN,
+	ret = i2c_smbus_read_i2c_block_data(client, UCD9000_MONITOR_CONFIG, UCD9000_MONITOR_CONFIG_LEN,
 					block_buffer);
-	
+	//printk("ret: %d, UCD9000_MONITOR_CONFIG_LEN: %d\n", ret, UCD9000_MONITOR_CONFIG_LEN);
 	if (ret <= 0) {
 		dev_err(&client->dev, "Failed to read configuration data\n");
 		return -ENODEV;
 	}
 	for (i = 0; i < ret; i++) {
-		int page = UCD9000_MON_PAGE(block_buffer[i]);
-
+		int page = UCD9000_MON_PAGE(block_buffer[i+1]); /* [0] is buffer length */
+		//printk("page: %d\n", page);
 		if (page >= info->pages)
 			continue;
 
-		switch (UCD9000_MON_TYPE(block_buffer[i])) {
+		switch (UCD9000_MON_TYPE(block_buffer[i+1])) {
 		case UCD9000_MON_VOLTAGE:
 		case UCD9000_MON_VOLTAGE_HW:
 			info->func[page] |= PMBUS_HAVE_VOUT
@@ -624,7 +625,7 @@ static int ucd9000_probe(struct i2c_client *client,
 /* This is the driver that will be inserted */
 static struct i2c_driver ucd9000_driver = {
 	.driver = {
-		.name = "ucd9000",
+		.name = "cls_ucd90160",
 		.of_match_table = of_match_ptr(ucd9000_of_match),
 	},
 	.probe = ucd9000_probe,
