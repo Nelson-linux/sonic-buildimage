@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os.path
 import subprocess
 import sys
 import re
@@ -14,9 +15,8 @@ class PsuUtil(PsuBase):
     """Platform-specific PSUutil class"""
 
     def __init__(self):
-        self.ipmi_raw = "docker exec -ti pmon ipmitool raw 0x4 0x2d"
-        self.psu1_id = "0x3a"
-        self.psu2_id = "0x3b"
+        self.path = "/sys/devices/platform/sys_cpld/getreg"
+        self.reg = "0xA160"
         PsuBase.__init__(self)
 
     def run_command(self, command):
@@ -27,13 +27,7 @@ class PsuUtil(PsuBase):
             sys.exit(proc.returncode)
     
         return out
-    
-    def find_value(self, in_string):
-        result = re.search("^.+ ([0-9a-f]{2}) .+$", in_string)
-        if result:
-            return result.group(1)
-        else:
-            return result
+
         
     def get_num_psus(self):
         """
@@ -51,17 +45,24 @@ class PsuUtil(PsuBase):
         """
         if index is None:
             return False
-
-        psu_id = self.psu1_id if index == 1 else self.psu2_id
-        res_string = self.run_command(self.ipmi_raw + ' ' + psu_id)
-        status_byte = self.find_value(res_string)
-        
-        if status_byte is None:
-            return False
-
-        failure_detected = (int(status_byte, 16) >> 1) & 1
-        input_lost = (int(status_byte, 16) >> 3) & 1
-        if failure_detected or input_lost:
+        try:
+            with open(self.path, "w") as fd:
+                fd.write(self.reg)
+        except Exception as e:
+            return None
+        try:
+            with open(self.path, "r") as fd:
+                status_byte = fd.read()
+        except Exception as e:
+            return None
+        status_byte.replace('0x', '')
+        if index == 1:
+            failure_detected = (int(status_byte, 16) >> 1) & 1
+            input_lost = (int(status_byte, 16) >> 3) & 1
+        else:
+            failure_detected = (int(status_byte, 16) >> 0) & 1
+            input_lost = (int(status_byte, 16) >> 2) & 1
+        if failure_detected == 0 or input_lost:
             return False
         else:
             return True
@@ -75,16 +76,26 @@ class PsuUtil(PsuBase):
         """
         if index is None:
             return False
-
-        psu_id = self.psu1_id if index == 1 else self.psu2_id
-        res_string = self.run_command(self.ipmi_raw + ' ' + psu_id)
-        status_byte = self.find_value(res_string)
-        
+        try:
+            with open(self.path, "w") as fd:
+                fd.write(self.reg)
+        except Exception as e:
+            return None
+        try:
+            with open(self.path, "r") as fd:
+                status_byte = fd.read()
+        except Exception as e:
+            return None
+        status_byte.replace('0x', '')
         if status_byte is None:
             return False
-        
-        presence = ( int(status_byte, 16) >> 0 ) & 1
-        if presence:
-            return True
+        if index == 1:
+            presence = (int(status_byte, 16) >> 3) & 1
         else:
+            presence = (int(status_byte, 16) >> 2) & 1
+
+        if presence:
             return False
+        else:
+            return True
+

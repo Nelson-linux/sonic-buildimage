@@ -31,13 +31,13 @@ start)
         modprobe pmbus_core
         modprobe industrialio
         modprobe lm75
-        modprobe platform_fan.ko
-        modprobe platform_psu.ko
-        modprobe ucd90120.ko
-        modprobe ucd90160.ko
-        modprobe mp2975.ko
-        modprobe mcp3425_smbus.ko
-        modprobe tps536c7.ko
+        modprobe platform_fan
+        modprobe platform_psu
+        modprobe ucd90120
+        modprobe ucd90160
+        modprobe mp2975
+        modprobe mcp3425_smbus
+        modprobe tps536c7
 
         echo 24lc64t 0x50 > /sys/bus/i2c/devices/i2c-6/new_device
         echo 24lc64t 0x50 > /sys/bus/i2c/devices/i2c-3/new_device

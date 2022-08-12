@@ -576,7 +576,7 @@ static struct dfps0880_fan_data *fan_update_device(struct device *dev)
         !data->valid) {
         int i;
 
-        dev_info(&client->dev, "Starting SilverstoneX fan update\n");
+        //dev_info(&client->dev, "Starting SilverstoneX fan update\n");
         data->valid = 0;
         
         /* Update fan data

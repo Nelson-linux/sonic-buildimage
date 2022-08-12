@@ -38,9 +38,9 @@ MAX_INLET = 32000  # B2F INTAKE
 SPEED_TOLERANCE = 10
 
 # Fan led value
-FAN_LED_OFF_VALUE = "3"
-FAN_LED_AMBER_VALUE = "2"
-FAN_LED_GREEN_VALUE = "1"
+FAN_LED_OFF_VALUE = "off"
+FAN_LED_RED_VALUE = "red"
+FAN_LED_GREEN_VALUE = "green"
 
 # PSU type
 psu_intake_list = ["SAC1500D12RA", "TDPS1500AB6C", "TDPS1500AB7C"]
@@ -74,11 +74,9 @@ class Fan(FanBase):
                 direction = self.FAN_DIRECTION_INTAKE
         else:
 
-            tdps = os.popen("i2cdump -y -f -r 0x2c-0x37 7 0x5%s b "
-                            "| awk '{print substr($0, length($0)-15)}' | sed -n 2p"
+            tdps = os.popen("i2cdump -y -f -r 0x2c-0x37 7 0x5%s b | awk '{print substr($0, length($0)-15)}' | sed -n 2p"
                             % self.fan_tray_index).read().strip()
-            number = os.popen("i2cdump -y -f -r 0x2c-0x37 7 0x5%s b "
-                              "| awk '{print substr($0, length($0)-15)}' | sed -n 3p"
+            number = os.popen("i2cdump -y -f -r 0x2c-0x37 7 0x5%s b | awk '{print substr($0, length($0)-15)}' | sed -n 3p"
                               % self.fan_tray_index).read().strip()
             psu_type = tdps + number
             if psu_type in psu_intake_list:
@@ -188,7 +186,7 @@ class Fan(FanBase):
         if not self.is_psu_fan:
             led_value = {
                 self.STATUS_LED_COLOR_GREEN: FAN_LED_GREEN_VALUE,
-                self.STATUS_LED_COLOR_AMBER: FAN_LED_AMBER_VALUE,
+                self.STATUS_LED_COLOR_RED: FAN_LED_RED_VALUE,
                 self.STATUS_LED_COLOR_OFF: FAN_LED_OFF_VALUE
             }.get(color)
             try:
@@ -218,7 +216,7 @@ class Fan(FanBase):
             status_led = {
                 "off": self.STATUS_LED_COLOR_OFF,
                 "green": self.STATUS_LED_COLOR_GREEN,
-                "amber": self.STATUS_LED_COLOR_AMBER,
+                "red": self.STATUS_LED_COLOR_RED,
             }.get(color, self.STATUS_LED_COLOR_OFF)
 
         else:

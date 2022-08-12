@@ -54,7 +54,7 @@ class Component(ComponentBase):
         Retrieves the BIOS firmware version
         """
         status, result = self._api_helper.run_command(Get_Active_Bios)
-        active_bios = bin(int(result, 16))[-2:]
+        active_bios = str(result[-2:])
         if active_bios == "01":
             if self.name == "Main_BIOS":
                 bios_version = self._api_helper.read_txt_file(BIOS_VERSION_PATH)

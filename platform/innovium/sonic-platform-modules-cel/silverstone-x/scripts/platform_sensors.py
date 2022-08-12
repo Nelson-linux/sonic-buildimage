@@ -9,6 +9,7 @@
 #  3. Fan trays
 
 import sys
+import os 
 import logging
 import subprocess
 
@@ -159,13 +160,14 @@ def read_psu_sensors(num_psus, ipmi_sdr_elist):
 
 
 def main():
-    output_string = ''
+    if os.path.exists("/dev/ipmi0") or os.path.exists("/dev/ipmi/0") or os.path.exists("/dev/ipmidev/0"):
+        output_string = ''
 
-    ipmi_sdr_elist = ipmi_sensor_dump(IPMI_SDR_CMD)
-    output_string += read_temperature_sensors(ipmi_sdr_elist)
-    output_string += read_psu_sensors(MAX_NUM_PSUS, ipmi_sdr_elist)
-    output_string += read_fan_sensors(MAX_NUM_FANS, ipmi_sdr_elist)
-    print(output_string)
+        ipmi_sdr_elist = ipmi_sensor_dump(IPMI_SDR_CMD)
+        output_string += read_temperature_sensors(ipmi_sdr_elist)
+        output_string += read_psu_sensors(MAX_NUM_PSUS, ipmi_sdr_elist)
+        output_string += read_fan_sensors(MAX_NUM_FANS, ipmi_sdr_elist)
+        print(output_string)
 
 
 if __name__ == '__main__':

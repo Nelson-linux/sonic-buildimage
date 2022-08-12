@@ -39,7 +39,7 @@ THERMAL_INFO = [
      'bus_path': '/sys/bus/i2c/devices/i2c-8/8-0049/hwmon/'},
     {'name': 'TEMP_FB_U17', # 8
      'bus_path': '/sys/bus/i2c/devices/i2c-58/58-0049/hwmon/'},
-    {'name': 'I89_CORE_Temp', # 9
+    {'name': 'I91_CORE_Temp', # 9
      'bus_path': '/sys/bus/i2c/devices/i2c-4/4-006c/hwmon/'},
     {'name': 'I89_AVDD_Temp', # 10
      'bus_path': '/sys/bus/i2c/devices/i2c-5/5-0070/hwmon/'},
@@ -64,10 +64,10 @@ THERMAL_INFO = [
 ]
 
 thermal_temp_dict = {
-    "CPU_TEMP1": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL, "max": 103, "high_critical_threshold": 105},
-    "CPU_TEMP2": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL, "max": 103, "high_critical_threshold": 105},
-    "CPU_TEMP3": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL, "max": 103, "high_critical_threshold": 105},
-    "CPU_TEMP4": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL, "max": 103, "high_critical_threshold": 105},
+    "CPU_TEMP1": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL, "max": 103, "high_critical_threshold": NULL_VAL},
+    "CPU_TEMP2": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL, "max": 103, "high_critical_threshold": NULL_VAL},
+    "CPU_TEMP3": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL, "max": 103, "high_critical_threshold": NULL_VAL},
+    "CPU_TEMP4": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL, "max": 103, "high_critical_threshold": NULL_VAL},
     "TEMP_FB_U52": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
                    "max": NULL_VAL, "high_critical_threshold": NULL_VAL},
     "TEMP_SW_U52": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
@@ -78,7 +78,7 @@ thermal_temp_dict = {
                     "max": NULL_VAL, "high_critical_threshold": NULL_VAL},
     "TEMP_FB_U17": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
                     "max": {"B2F": 52, "F2B": NULL_VAL}, "high_critical_threshold": {"B2F": 57, "F2B": NULL_VAL}},
-    "I89_CORE_Temp": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
+    "I91_CORE_Temp": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
                      "max": NULL_VAL, "high_critical_threshold": 125},
     "I89_AVDD_Temp": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
                      "max": NULL_VAL, "high_critical_threshold": 125},
@@ -87,7 +87,7 @@ thermal_temp_dict = {
     "QSFP_DD_Temp2": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
                      "max": NULL_VAL, "high_critical_threshold": 125},
     "TEMP_SW_Internal": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
-                     "max": 105, "high_critical_threshold": 110},
+                     "max": 105, "high_critical_threshold": 111},
     "PSU1_Temp1": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
                    "max": NULL_VAL, "high_critical_threshold": 60},
     "PSU1_Temp2": {"low_critical_threshold": NULL_VAL, "min": NULL_VAL,
