@@ -85,7 +85,7 @@ class Fan(FanBase):
                 direction = self.FAN_DIRECTION_EXHAUST
             else:
                 # NOT Support
-                direction = "NA"
+                direction = "N/A"
         return direction
 
     def get_speed(self):
@@ -251,14 +251,13 @@ class Fan(FanBase):
                 presence = True
         else:
             if self.psu_index == 1:
-                psu_fan_bus = "58"
+                psu_prs_bit = 3
             else:
-                psu_fan_bus = "59"
-            bus_path = os.popen("ls /sys/bus/i2c/devices/i2c-7/7-00%s/hwmon" % psu_fan_bus).read().strip()
-            with open(Psu_Fan_Speed.format(psu_fan_bus, bus_path), "r") as f:
-                rpm_speed = int(f.read().strip())
-            if int(rpm_speed) != 0:
-                presence = True
+                psu_prs_bit = 2
+            # get PSU status from syscpld
+            reg = os.popen("i2cget -y -f 2 0x0d 0x60").read().strip()
+            reg = int(reg, 16)
+            presence = False if ( reg >> psu_prs_bit & 1 ) > 0 else True
         return presence
 
     @staticmethod
